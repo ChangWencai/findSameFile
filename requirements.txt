@@ -1,0 +1,11 @@
+# GUI Framework
+PyQt6==6.7.0
+# Safe file deletion (move to trash/recycle bin)
+send2trash==1.8.2
+# Image processing for similarity detection
+Pillow==10.4.0
+imagehash==4.3.1
+# Video processing for keyframe extraction
+opencv-python==4.9.0.80
+# Build tool for creating executables
+pyinstaller>=6.0.0
