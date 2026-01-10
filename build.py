@@ -30,7 +30,7 @@ def setup_ci_environment():
     if is_ci and platform.system() == 'Linux':
         # 在 Linux CI 环境中，使用 offscreen 平台避免需要 X11 显示服务器
         os.environ['QT_QPA_PLATFORM'] = 'offscreen'
-        print("✓ CI 环境检测: 设置 QT_QPA_PLATFORM=offscreen")
+        print("[OK] CI 环境检测: 设置 QT_QPA_PLATFORM=offscreen")
 
     return is_ci
 
@@ -59,10 +59,10 @@ def check_pyinstaller():
     """检查 PyInstaller 是否已安装"""
     try:
         import PyInstaller
-        print(f"✓ PyInstaller 已安装: {PyInstaller.__version__}")
+        print(f"[OK] PyInstaller 已安装: {PyInstaller.__version__}")
         return True
     except ImportError:
-        print("✗ PyInstaller 未安装")
+        print("[FAIL] PyInstaller 未安装")
         return False
 
 
@@ -76,12 +76,12 @@ def install_pyinstaller():
             capture_output=True,
             text=True
         )
-        print("✓ PyInstaller 安装成功")
+        print("[OK] PyInstaller 安装成功")
         if result.stdout:
             print(result.stdout)
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ PyInstaller 安装失败: {e}")
+        print(f"[FAIL] PyInstaller 安装失败: {e}")
         if e.stderr:
             print(f"错误输出: {e.stderr}")
         return False
@@ -164,7 +164,7 @@ coll = COLLECT(
     with open(f'{APP_NAME}.spec', 'w', encoding='utf-8') as f:
         f.write(spec_content)
 
-    print(f"✓ 创建 spec 文件: {APP_NAME}.spec")
+    print(f"[OK] 创建 spec 文件: {APP_NAME}.spec")
 
 
 def build_executable(platform_name):
@@ -201,10 +201,10 @@ def build_executable(platform_name):
 
     try:
         result = subprocess.run(cmd, check=True, capture_output=False)
-        print(f"\n✓ {platform_name} 版本编译成功!")
+        print(f"\n[OK] {platform_name} 版本编译成功!")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"\n✗ {platform_name} 版本编译失败: {e}")
+        print(f"\n[FAIL] {platform_name} 版本编译失败: {e}")
         return False
 
 
@@ -224,12 +224,12 @@ def package_executable(platform_name):
         if app_path.exists():
             output_file = output_dir / f'{APP_NAME}-{VERSION}-macos.app'
             shutil.copytree(app_path, output_file)
-            print(f"✓ macOS 应用包: {output_file}")
+            print(f"[OK] macOS 应用包: {output_file}")
 
             # 创建压缩包
             zip_cmd = ['zip', '-r', '-y', str(output_file.with_suffix('.zip')), str(output_file.name)]
             subprocess.run(zip_cmd, check=True)
-            print(f"✓ macOS 压缩包: {output_file.with_suffix('.zip')}")
+            print(f"[OK] macOS 压缩包: {output_file.with_suffix('.zip')}")
             return True
 
     elif platform_name == "windows":
@@ -238,7 +238,7 @@ def package_executable(platform_name):
         if exe_path.exists():
             output_file = output_dir / f'{APP_NAME}-{VERSION}-windows.exe'
             shutil.copy(exe_path, output_file)
-            print(f"✓ Windows 可执行文件: {output_file}")
+            print(f"[OK] Windows 可执行文件: {output_file}")
             return True
 
     else:  # linux
@@ -253,10 +253,10 @@ def package_executable(platform_name):
             output_file = output_dir / f'{APP_NAME}-{VERSION}-linux.tar.gz'
             with tarfile.open(output_file, 'w:gz') as tar:
                 tar.add(exe_path, arcname=APP_NAME)
-            print(f"✓ Linux 压缩包: {output_file}")
+            print(f"[OK] Linux 压缩包: {output_file}")
             return True
 
-    print(f"✗ 未找到编译输出文件")
+    print(f"[FAIL] 未找到编译输出文件")
     return False
 
 
@@ -338,7 +338,7 @@ coll = COLLECT(
     with open(f'{APP_NAME}-cli.spec', 'w', encoding='utf-8') as f:
         f.write(spec_content)
 
-    print(f"✓ 创建 CLI spec 文件: {APP_NAME}-cli.spec")
+    print(f"[OK] 创建 CLI spec 文件: {APP_NAME}-cli.spec")
 
 
 def build_all():
@@ -391,7 +391,7 @@ def build_all():
 
         try:
             subprocess.run(cmd, check=True)
-            print(f"\n✓ CLI 版本编译成功!")
+            print(f"\n[OK] CLI 版本编译成功!")
 
             # 打包
             dist_dir = Path('dist')
@@ -412,11 +412,11 @@ def build_all():
                     with tarfile.open(output_file, 'w:gz') as tar:
                         tar.add(exe_path, arcname=f'{APP_NAME}-cli')
 
-                print(f"✓ 输出文件: {output_file}")
+                print(f"[OK] 输出文件: {output_file}")
                 success = True
 
         except subprocess.CalledProcessError as e:
-            print(f"\n✗ 编译失败: {e}")
+            print(f"\n[FAIL] 编译失败: {e}")
 
     elif choice == "3":
         # 编译 GUI 版本
@@ -436,9 +436,9 @@ def build_all():
 
         try:
             subprocess.run(cmd, check=True)
-            print(f"\n✓ CLI 版本编译成功!")
+            print(f"\n[OK] CLI 版本编译成功!")
         except subprocess.CalledProcessError as e:
-            print(f"\n✗ CLI 版本编译失败: {e}")
+            print(f"\n[FAIL] CLI 版本编译失败: {e}")
 
         success = gui_success
 
@@ -449,7 +449,7 @@ def build_all():
     # 显示结果
     print(f"\n{'='*60}")
     if success:
-        print("✓ 编译完成!")
+        print("[OK] 编译完成!")
         print(f"\n输出目录: {Path('release').absolute()}")
         print(f"\n文件列表:")
         release_dir = Path('release')
@@ -458,7 +458,7 @@ def build_all():
                 size = file.stat().st_size / (1024 * 1024)  # MB
                 print(f"  - {file.name} ({size:.1f} MB)")
     else:
-        print("✗ 编译失败")
+        print("[FAIL] 编译失败")
     print(f"{'='*60}\n")
 
     return 0 if success else 1
