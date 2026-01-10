@@ -11,6 +11,12 @@ import subprocess
 import shutil
 from pathlib import Path
 
+# 设置标准输出使用 UTF-8 编码（解决 Windows 命令行中文显示问题）
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.detach(), errors='replace')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.detach(), errors='replace')
+
 
 # 配置
 APP_NAME = "findSameVideo"
