@@ -18,8 +18,26 @@ VERSION = "0.6.0"
 AUTHOR = "Your Name"
 DESCRIPTION = "重复文件查找器"
 
-# PyInstaller 配uration
+# PyInstaller 配置
 PYINSTALLER_VERSION = ">=6.0.0"
+
+
+def setup_ci_environment():
+    """为 CI 环境设置必要的环境变量"""
+    # 检测是否在 CI 环境中
+    is_ci = os.environ.get('CI', '').lower() == 'true'
+
+    if is_ci and platform.system() == 'Linux':
+        # 在 Linux CI 环境中，使用 offscreen 平台避免需要 X11 显示服务器
+        os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+        print("✓ CI 环境检测: 设置 QT_QPA_PLATFORM=offscreen")
+
+    return is_ci
+
+
+def is_ci_environment():
+    """检测是否运行在 CI 环境中"""
+    return os.environ.get('CI', '').lower() == 'true'
 
 
 def get_platform():
@@ -52,14 +70,20 @@ def install_pyinstaller():
     """安装 PyInstaller"""
     print("正在安装 PyInstaller...")
     try:
-        subprocess.run(
+        result = subprocess.run(
             [sys.executable, "-m", "pip", "install", "pyinstaller" + PYINSTALLER_VERSION],
-            check=True
+            check=True,
+            capture_output=True,
+            text=True
         )
         print("✓ PyInstaller 安装成功")
+        if result.stdout:
+            print(result.stdout)
         return True
     except subprocess.CalledProcessError as e:
         print(f"✗ PyInstaller 安装失败: {e}")
+        if e.stderr:
+            print(f"错误输出: {e.stderr}")
         return False
 
 
@@ -464,6 +488,9 @@ def build_all():
 def main():
     """主函数"""
     import argparse
+
+    # 设置 CI 环境变量（必须在最前面）
+    setup_ci_environment()
 
     parser = argparse.ArgumentParser(description='多平台编译脚本')
     parser.add_argument('--all', action='store_true', help='编译所有版本')

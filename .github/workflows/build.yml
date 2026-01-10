@@ -59,6 +59,9 @@ jobs:
         pip install opencv-python-headless
 
     - name: Build with PyInstaller
+      env:
+        CI: true
+        QT_QPA_PLATFORM: offscreen
       run: |
         python build.py --gui --no-input
 
