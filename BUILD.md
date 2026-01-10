@@ -87,20 +87,18 @@ make release
 
 ### macOS
 
-支持 Intel 和 Apple Silicon 两种架构：
+Apple Silicon 原生版本（兼容 Intel Mac 通过 Rosetta 2）：
 
 ```bash
 release/
-├── findSameVideo-0.6.0-macos-intel.app/  # Intel x86_64 架构 (macOS 13+)
-├── findSameVideo-0.6.0-macos-intel.zip   # Intel 版压缩包
-├── findSameVideo-0.6.0-macos-arm.app/    # Apple Silicon ARM64 (M1/M2/M3)
-└── findSameVideo-0.6.0-macos-arm.zip     # ARM 版压缩包
+├── findSameVideo-0.6.0-macos.app/  # Apple Silicon ARM64 原生版本
+└── findSameVideo-0.6.0-macos.zip   # 压缩包
 ```
 
-**选择指南：**
-- Intel Mac（2019 年及之前）：下载 `macos-intel` 版本
-- Apple Silicon Mac（M1/M2/M3）：下载 `macos-arm` 版本
-- 不确定：下载 `macos-arm` 版本（通过 Rosetta 2 也能运行 x86 应用）
+**兼容性说明：**
+- Apple Silicon Mac (M1/M2/M3)：原生运行，性能最佳
+- Intel Mac：通过 Rosetta 2 自动运行，性能损失很小
+- 所有 macOS 11+ 系统均支持
 
 ### Linux
 
@@ -147,14 +145,13 @@ docker-compose up
 
 **自动编译平台：**
 - Ubuntu (Linux x86_64)
-- macOS 13 (Intel x86_64)
-- macOS 14 (Apple Silicon ARM64)
+- macOS (Apple Silicon ARM64)
 - Windows (x86_64)
 
 **输出：**
 - 自动上传构建产物到 GitHub Actions Artifacts
 - 自动创建 GitHub Release（tag 触发时）
-- 支持 Intel Mac 和 Apple Silicon Mac 原生运行
+- macOS 版本为 ARM64 原生，Intel Mac 通过 Rosetta 2 运行
 
 ### 手动触发工作流
 
