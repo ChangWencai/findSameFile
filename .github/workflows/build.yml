@@ -10,14 +10,17 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-13, macos-14, windows-latest]
         include:
           - os: ubuntu-latest
             platform: linux
             artifact_name: findSameVideo-linux
-          - os: macos-latest
-            platform: macos
-            artifact_name: findSameVideo-macos
+          - os: macos-13
+            platform: macos-intel
+            artifact_name: findSameVideo-macos-intel
+          - os: macos-14
+            platform: macos-arm
+            artifact_name: findSameVideo-macos-arm
           - os: windows-latest
             platform: windows
             artifact_name: findSameVideo-windows
@@ -73,13 +76,13 @@ jobs:
         tar -czf ../../release/findSameVideo-linux.tar.gz findSameVideo
 
     - name: Package (macOS)
-      if: matrix.os == 'macos-latest'
+      if: startsWith(matrix.os, 'macos-')
       run: |
         mkdir -p release
         if [ -d "dist/findSameVideo.app" ]; then
-          cp -r dist/findSameVideo.app release/findSameVideo-macos.app
+          cp -r dist/findSameVideo.app release/${{ matrix.artifact_name }}.app
           cd release
-          zip -r -y findSameVideo-macos.zip findSameVideo-macos.app
+          zip -r -y ${{ matrix.artifact_name }}.zip ${{ matrix.artifact_name }}.app
         fi
 
     - name: Package (Windows)
