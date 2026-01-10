@@ -185,35 +185,14 @@ def build_executable(platform_name):
     # 创建 spec 文件
     create_spec_file()
 
-    # PyInstaller 命令
+    # PyInstaller 命令（使用 spec 文件时不允许额外的命令行选项）
+    # 所有配置已在 spec 文件中定义
     cmd = [
         'pyinstaller',
         '--clean',
         f'{APP_NAME}.spec',
         '--noconfirm',
     ]
-
-    # 平台特定选项
-    if platform_name == "macos":
-        # macOS 特定选项
-        cmd.extend([
-            '--windowed',  # 不显示终端窗口
-            '--osx-bundle-identifier', f'com.{APP_NAME.lower()}.app',
-            '--name', APP_NAME,
-        ])
-    elif platform_name == "windows":
-        # Windows 特定选项
-        cmd.extend([
-            '--windowed',
-            '--name', APP_NAME,
-            '--add-binary', ';.',  # 如果有额外的二进制文件
-        ])
-    else:  # linux
-        # Linux 特定选项
-        cmd.extend([
-            '--windowed',
-            '--name', APP_NAME,
-        ])
 
     # 执行编译
     print("执行命令:")
