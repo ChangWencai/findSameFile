@@ -47,6 +47,7 @@ FILE_TYPES = [
     "文档文件 (*.pdf *.doc *.docx *.xls *.xlsx *.ppt *.pptx *.txt)",
     "压缩文件 (*.zip *.rar *.7z *.tar *.gz)",
     "可执行文件 (*.exe *.app *.dmg)",
+    "自定义 (在下方输入框中编辑)",
 ]
 
 
@@ -210,9 +211,27 @@ class DuplicateFileFinderGUI(QMainWindow):
             item_widget = self.file_type_list.item(self.file_type_list.count() - 1)
             item_widget.setFlags(item_widget.flags() | Qt.ItemFlag.ItemIsUserCheckable)
             item_widget.setCheckState(Qt.CheckState.Checked)
+            # 默认取消"自定义"选项
+            if "自定义" in file_type:
+                item_widget.setCheckState(Qt.CheckState.Unchecked)
+
+        # 连接列表项点击事件，用于处理自定义选项
+        self.file_type_list.itemClicked.connect(self.on_file_type_item_clicked)
 
         type_layout.addWidget(self.select_all_checkbox)
         type_layout.addWidget(self.file_type_list)
+
+        # 自定义文件扩展名输入区域
+        custom_ext_layout = QHBoxLayout()
+        custom_ext_label = QLabel("自定义扩展名:")
+        self.custom_extensions_input = QLineEdit()
+        self.custom_extensions_input.setPlaceholderText("例如: .py .js .ts (用空格分隔)")
+        self.custom_extensions_input.setText(self.config.get("custom_extensions", ""))
+        self.custom_extensions_input.setEnabled(False)  # 默认禁用
+        custom_ext_layout.addWidget(custom_ext_label)
+        custom_ext_layout.addWidget(self.custom_extensions_input)
+        type_layout.addLayout(custom_ext_layout)
+
         type_group.setLayout(type_layout)
 
         top_layout.addWidget(type_group)
@@ -412,7 +431,6 @@ class DuplicateFileFinderGUI(QMainWindow):
 
         # Enable drag and drop
         self.setAcceptDrops(True)
-        self.setDragDropMode(QMainWindow.DragDropMode.DropOnly)
 
     def dragEnterEvent(self, event):
         """处理拖拽进入事件"""
@@ -469,14 +487,45 @@ class DuplicateFileFinderGUI(QMainWindow):
             item = self.file_type_list.item(i)
             item.setCheckState(check_state)
 
+    def on_file_type_item_clicked(self, item):
+        """处理文件类型列表项点击事件"""
+        text = item.text()
+        # 如果点击的是"自定义"选项，启用/禁用输入框
+        if "自定义" in text:
+            is_checked = item.checkState() == Qt.CheckState.Checked
+            self.custom_extensions_input.setEnabled(is_checked)
+            if is_checked:
+                self.custom_extensions_input.setFocus()
+
     def get_selected_extensions(self):
         extensions = set()
         for i in range(self.file_type_list.count()):
             item = self.file_type_list.item(i)
             if item.checkState() == Qt.CheckState.Checked:
                 text = item.text()
-                # Extract extensions from text
-                if "*.pdf" in text:
+                # 处理"自定义"选项
+                if "自定义" in text:
+                    # 从输入框获取自定义扩展名
+                    custom_ext_text = self.custom_extensions_input.text().strip()
+                    if custom_ext_text:
+                        # 保存自定义扩展名到配置
+                        self.config.set("custom_extensions", custom_ext_text)
+                        # 解析扩展名（支持空格或逗号分隔）
+                        import re
+                        # 移除多余的空格和换行
+                        custom_ext_text = ' '.join(custom_ext_text.split())
+                        # 匹配扩展名（支持 .ext 或 ext 格式）
+                        ext_matches = re.findall(r'[,\s]?([.\w]+)', custom_ext_text)
+                        for ext in ext_matches:
+                            if ext:
+                                # 确保以点开头
+                                if not ext.startswith('.'):
+                                    ext = f'.{ext}'
+                                extensions.add(ext.lower())
+                elif "所有文件" in text:
+                    # 所有文件选中，返回 None 表示不筛选
+                    return None
+                elif "*.pdf" in text:
                     extensions.update(['.pdf'])
                 elif "*.doc" in text:
                     extensions.update(['.doc', '.docx'])
