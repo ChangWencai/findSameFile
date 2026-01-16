@@ -1136,43 +1136,43 @@ class DuplicateFileFinderGUI(QMainWindow):
     def _select_files_by_strategy(self, file_items: list, strategy: dict):
         """根据策略选择要删除的文件"""
         strategy_type = strategy.get('type')
-        to_delete = set()
-        to_keep = set()
+        to_delete = []  # 改为列表，QTreeWidgetItem 不可哈希
+        to_keep = []    # 改为列表
 
         if strategy_type == 'keep_one':
             # 每组只保留第一个文件
             if file_items:
-                to_keep.add(file_items[0][0])
+                to_keep.append(file_items[0][0])
                 for item, _ in file_items[1:]:
-                    to_delete.add(item)
+                    to_delete.append(item)
 
         elif strategy_type == 'keep_shortest_path':
             # 保留路径最短的文件
             file_items.sort(key=lambda x: len(x[1].path))
-            to_keep.add(file_items[0][0])
+            to_keep.append(file_items[0][0])
             for item, _ in file_items[1:]:
-                to_delete.add(item)
+                to_delete.append(item)
 
         elif strategy_type == 'keep_longest_path':
             # 保留路径最长的文件
             file_items.sort(key=lambda x: len(x[1].path), reverse=True)
-            to_keep.add(file_items[0][0])
+            to_keep.append(file_items[0][0])
             for item, _ in file_items[1:]:
-                to_delete.add(item)
+                to_delete.append(item)
 
         elif strategy_type == 'keep_newest':
             # 保留最新的文件（按修改时间）
             file_items.sort(key=lambda x: x[1].mtime, reverse=True)
-            to_keep.add(file_items[0][0])
+            to_keep.append(file_items[0][0])
             for item, _ in file_items[1:]:
-                to_delete.add(item)
+                to_delete.append(item)
 
         elif strategy_type == 'keep_oldest':
             # 保留最旧的文件
             file_items.sort(key=lambda x: x[1].mtime)
-            to_keep.add(file_items[0][0])
+            to_keep.append(file_items[0][0])
             for item, _ in file_items[1:]:
-                to_delete.add(item)
+                to_delete.append(item)
 
         elif strategy_type == 'keep_by_pattern':
             # 保留匹配模式的文件
@@ -1185,36 +1185,38 @@ class DuplicateFileFinderGUI(QMainWindow):
 
             if strategy.get('action') == 'keep':
                 # 保留匹配的，删除不匹配的
-                to_keep.update(matched)
-                to_delete.update(not_matched)
+                to_keep.extend(matched)
+                to_delete.extend(not_matched)
             else:
                 # 删除匹配的，保留不匹配的
-                to_delete.update(matched)
-                to_keep.update(not_matched)
+                to_delete.extend(matched)
+                to_keep.extend(not_matched)
 
             # 如果没有保留任何文件，保留第一个
             if not to_keep and file_items:
-                to_keep.add(file_items[0][0])
-                to_delete.discard(file_items[0][0])
+                to_keep.append(file_items[0][0])
+                if file_items[0][0] in to_delete:
+                    to_delete.remove(file_items[0][0])
 
         elif strategy_type == 'keep_smallest':
             # 保留最小的文件
             file_items.sort(key=lambda x: x[1].size)
-            to_keep.add(file_items[0][0])
+            to_keep.append(file_items[0][0])
             for item, _ in file_items[1:]:
-                to_delete.add(item)
+                to_delete.append(item)
 
         elif strategy_type == 'keep_largest':
             # 保留最大的文件
             file_items.sort(key=lambda x: x[1].size, reverse=True)
-            to_keep.add(file_items[0][0])
+            to_keep.append(file_items[0][0])
             for item, _ in file_items[1:]:
-                to_delete.add(item)
+                to_delete.append(item)
 
         # 确保每组至少保留一个文件
         if not to_keep and file_items:
-            to_keep.add(file_items[0][0])
-            to_delete.discard(file_items[0][0])
+            to_keep.append(file_items[0][0])
+            if file_items[0][0] in to_delete:
+                to_delete.remove(file_items[0][0])
 
         return to_delete
 
