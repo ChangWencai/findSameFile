@@ -557,6 +557,11 @@ class DuplicateFileFinderGUI(QMainWindow):
 
         extensions = self.get_selected_extensions()
 
+        # 重置进度条和状态
+        self.progress_bar.setValue(0)
+        self.status_label.setText("准备扫描...")
+        self.last_progress_update = 0
+
         # Initialize time tracking
         self.scan_start_time = time.time()
         self.last_progress_update = time.time()
