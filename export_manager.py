@@ -12,6 +12,7 @@ from dataclasses import asdict
 
 from duplicate_finder import DuplicateGroup
 from logger import get_logger
+from utils import format_size  # 导入工具函数
 
 
 class ExportManager:
@@ -143,13 +144,6 @@ class ExportManager:
             total_groups = len(duplicate_groups)
             total_files = sum(len(g.files) for g in duplicate_groups)
             total_wasted = sum(g.total_size - g.files[0].size for g in duplicate_groups)
-
-            def format_size(size: int) -> str:
-                for unit in ["B", "KB", "MB", "GB", "TB"]:
-                    if size < 1024.0:
-                        return f"{size:.2f} {unit}"
-                    size /= 1024.0
-                return f"{size:.2f} PB"
 
             html_content = f"""<!DOCTYPE html>
 <html lang="zh-CN">

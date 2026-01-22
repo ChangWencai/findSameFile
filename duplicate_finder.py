@@ -19,6 +19,10 @@ except ImportError:
 # 获取日志记录器
 logger = logging.getLogger(__name__)
 
+# 配置常量
+HASH_CHUNK_SIZE = 32 * 1024  # 32KB chunks
+PROGRESS_BATCH_SIZE_DIVISOR = 4  # 用于计算批处理大小
+
 
 @dataclass
 class DuplicateGroup:
@@ -33,10 +37,9 @@ def _calculate_file_hash_static(file_path: str, algorithm: str) -> Optional[str]
     import hashlib
     try:
         hasher = hashlib.new(algorithm)
-        CHUNK_SIZE = 8192 * 4  # 32KB
         with open(file_path, 'rb') as f:
             while True:
-                chunk = f.read(CHUNK_SIZE)
+                chunk = f.read(HASH_CHUNK_SIZE)
                 if not chunk:
                     break
                 hasher.update(chunk)

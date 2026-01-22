@@ -21,6 +21,7 @@ from duplicate_finder import DuplicateFinder, DuplicateGroup
 from export_manager import ExportManager
 from config_manager import ConfigManager
 from logger import get_logger
+from utils import format_size  # 导入工具函数
 
 # Try to import similarity detector
 try:
@@ -808,7 +809,7 @@ class DuplicateFileFinderGUI(QMainWindow):
             # Build preview text
             preview_text = f"文件名: {path_obj.name}\n"
             preview_text += f"路径: {path_obj.parent}\n"
-            preview_text += f"大小: {self.format_size(file_size)}\n"
+            preview_text += f"大小: {format_size(file_size)}\n"
             preview_text += f"修改时间: {datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')}\n"
 
             # Add extension-specific info
@@ -868,7 +869,7 @@ class DuplicateFileFinderGUI(QMainWindow):
                 group_item = QTreeWidgetItem(self.results_tree)
                 group_item.setText(1, f"重复组 ({len(group.files)} 个文件)")
                 group_item.setText(2, f"哈希: {group.hash_value[:16]}...")
-                group_item.setText(3, self.format_size(group.total_size))
+                group_item.setText(3, format_size(group.total_size))
 
                 # Set bold font for group item
                 font = group_item.font(1)
@@ -888,7 +889,7 @@ class DuplicateFileFinderGUI(QMainWindow):
 
                     file_item.setText(1, file_path.name)
                     file_item.setText(2, str(file_path.parent))
-                    file_item.setText(3, self.format_size(file_info.size))
+                    file_item.setText(3, format_size(file_info.size))
 
                     # Store full path in data for easy access
                     file_item.setData(0, Qt.ItemDataRole.UserRole, file_info.path)
@@ -916,7 +917,7 @@ class DuplicateFileFinderGUI(QMainWindow):
         total_files = sum(len(group.files) for group in results)
         self.files_scanned_label.setText(f"重复文件数: {total_files}")
         self.duplicate_groups_label.setText(f"重复组数: {len(results)}")
-        self.wasted_space_label.setText(f"浪费空间: {self.format_size(wasted_space)}")
+        self.wasted_space_label.setText(f"浪费空间: {format_size(wasted_space)}")
         self.selected_files_label.setText(f"已选文件: 0")
 
     def delete_selected_files(self):
@@ -1002,7 +1003,7 @@ class DuplicateFileFinderGUI(QMainWindow):
                 self,
                 "删除完成",
                 f"成功{mode_text}: {deleted_count} 个文件\n"
-                f"释放空间: {self.format_size(total_size)}\n\n"
+                f"释放空间: {format_size(total_size)}\n\n"
                 f"失败:\n" + "\n".join(failed_files[:10])
             )
         else:
@@ -1010,7 +1011,7 @@ class DuplicateFileFinderGUI(QMainWindow):
                 self,
                 "删除完成",
                 f"成功{mode_text} {deleted_count} 个文件\n"
-                f"释放空间: {self.format_size(total_size)}\n\n"
+                f"释放空间: {format_size(total_size)}\n\n"
                 f"提示：可在删除历史中查看已删除的文件"
             )
 
@@ -1133,7 +1134,7 @@ class DuplicateFileFinderGUI(QMainWindow):
             QMessageBox.information(
                 self,
                 "智能选择完成",
-                f"已选择 {total_selected} 个文件\n预计释放空间: {self.format_size(total_space)}"
+                f"已选择 {total_selected} 个文件\n预计释放空间: {format_size(total_space)}"
             )
         finally:
             self.results_tree.itemChanged.connect(self.on_item_changed)
@@ -1327,14 +1328,6 @@ class DuplicateFileFinderGUI(QMainWindow):
                 return int(value * multiplier)
 
         return 0
-
-    @staticmethod
-    def format_size(size: int) -> str:
-        for unit in ["B", "KB", "MB", "GB", "TB"]:
-            if size < 1024.0:
-                return f"{size:.2f} {unit}"
-            size /= 1024.0
-        return f"{size:.2f} PB"
 
     def _load_deletion_history(self) -> list:
         """加载删除历史记录"""

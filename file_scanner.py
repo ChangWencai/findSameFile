@@ -17,6 +17,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# 配置常量
+HASH_CHUNK_SIZE = 32 * 1024  # 32KB chunks for optimal I/O performance
+HASH_PROGRESS_INTERVAL = 1024 * 1024  # Report progress every 1MB
+
 # Skip these special file types that can cause hangs
 SKIP_EXTENSIONS = {'.app', '.bundle', '.pkg', '.dmg', '.iso'}
 SKIP_NAMES = {'._', '.DS_Store', 'Thumbs.db', '.Spotlight-V100', '.Trashes'}
@@ -184,9 +188,6 @@ class FileScanner:
 
 
 class HashCalculator:
-    CHUNK_SIZE = 8192 * 4  # 32KB chunks for optimal I/O performance
-    PROGRESS_INTERVAL = 1024 * 1024  # Report progress every 1MB
-
     def __init__(self, algorithm: str = 'sha256'):
         # 验证算法安全性
         secure_algorithms = {'sha256', 'sha384', 'sha512', 'sha3_256', 'sha3_384', 'sha3_512'}
@@ -204,7 +205,7 @@ class HashCalculator:
 
             with open(file_path, 'rb') as f:
                 while True:
-                    chunk = f.read(self.CHUNK_SIZE)
+                    chunk = f.read(HASH_CHUNK_SIZE)
                     if not chunk:
                         break
                     hasher.update(chunk)
@@ -212,7 +213,7 @@ class HashCalculator:
 
                     # Only report progress at intervals to avoid overwhelming the GUI
                     if progress_callback and file_size > 0:
-                        if bytes_read - last_progress_report >= self.PROGRESS_INTERVAL:
+                        if bytes_read - last_progress_report >= HASH_PROGRESS_INTERVAL:
                             progress_callback(bytes_read, file_size)
                             last_progress_report = bytes_read
 
