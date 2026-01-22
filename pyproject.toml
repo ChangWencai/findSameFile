@@ -1,0 +1,69 @@
+[tool.poetry]
+name = "findSameVideo"
+version = "0.7.0"
+description = "重复文件查找器 - 强大的重复文件检测工具"
+authors = ["Chang Wencai"]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+PyQt6 = "^6.7.0"
+send2trash = {version = "^1.8.2", optional = true}
+Pillow = {version = "^10.4.0", optional = true}
+imagehash = {version = "^4.3.1", optional = true}
+opencv-python = {version = "^4.9.0", optional = true}
+opencv-python-headless = {version = "^4.9.0", optional = true}
+
+[tool.poetry.dev-dependencies]
+mypy = "^1.8.0"
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-qt = "^4.2.0"
+
+[tool.mypy]
+# 基本配置
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+# 忽略的模块和错误
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "PyQt6.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "send2trash"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "PIL.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "cv2.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "imagehash.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+
+[tool.pytest.coverage.run]
+branch = true
+source = ["."]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
