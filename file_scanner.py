@@ -4,6 +4,18 @@ from pathlib import Path
 from typing import Dict, List, Set, Callable, Optional, Tuple
 from dataclasses import dataclass
 
+# 导入自定义异常
+from exceptions import (
+    PermissionDeniedError,
+    FileNotFoundError as FindSameVideoFileNotFound,
+    HashCalculationError,
+    FileScanError
+)
+import logging
+
+# 获取日志记录器
+logger = logging.getLogger(__name__)
+
 
 # Skip these special file types that can cause hangs
 SKIP_EXTENSIONS = {'.app', '.bundle', '.pkg', '.dmg', '.iso'}
@@ -11,8 +23,8 @@ SKIP_NAMES = {'._', '.DS_Store', 'Thumbs.db', '.Spotlight-V100', '.Trashes'}
 
 
 @dataclass
-class PermissionError:
-    """权限错误信息"""
+class PermissionErrorInfo:
+    """权限错误信息（重命名避免与内置异常冲突）"""
     path: str
     error: str
 
@@ -27,10 +39,10 @@ class FileInfo:
 class FileScanner:
     def __init__(self, extensions: Optional[Set[str]] = None):
         self.extensions = extensions
-        self.permission_errors: List[PermissionError] = []
+        self.permission_errors: List[PermissionErrorInfo] = []
         self.skipped_directories: List[str] = []
 
-    def check_permissions(self, root_path: str) -> List[PermissionError]:
+    def check_permissions(self, root_path: str) -> List[PermissionErrorInfo]:
         """
         预检查目录权限
 
@@ -41,10 +53,10 @@ class FileScanner:
         root = Path(root_path)
 
         if not root.exists():
-            return [PermissionError(str(root), "路径不存在")]
+            return [PermissionErrorInfo(str(root), "路径不存在")]
 
         if not os.access(root, os.R_OK):
-            self.permission_errors.append(PermissionError(str(root), "无读取权限"))
+            self.permission_errors.append(PermissionErrorInfo(str(root), "无读取权限"))
 
         # Check subdirectories
         for dir_path in root.rglob('*'):
@@ -52,10 +64,12 @@ class FileScanner:
                 try:
                     # Try to list directory
                     list(dir_path.iterdir())
-                except PermissionError:
-                    self.permission_errors.append(PermissionError(str(dir_path), "无访问权限"))
-                except Exception as e:
-                    self.permission_errors.append(PermissionError(str(dir_path), str(e)))
+                except PermissionError as e:
+                    self.permission_errors.append(PermissionErrorInfo(str(dir_path), "无访问权限"))
+                    logger.debug(f"权限检查失败: {dir_path}")
+                except OSError as e:
+                    self.permission_errors.append(PermissionErrorInfo(str(dir_path), str(e)))
+                    logger.warning(f"文件系统错误: {dir_path} - {e}")
 
         return self.permission_errors
 
@@ -80,10 +94,10 @@ class FileScanner:
         self.skipped_directories = []
 
         if not root.exists():
-            raise ValueError(f"Path does not exist: {root_path}")
+            raise FindSameVideoFileNotFound(f"路径不存在: {root_path}")
 
         if not os.access(root, os.R_OK):
-            raise PermissionError(f"无读取权限: {root_path}")
+            raise PermissionDeniedError(root_path, "无读取权限")
 
         def should_skip_file(file_path: Path) -> bool:
             # Skip special file types
@@ -96,7 +110,8 @@ class FileScanner:
             try:
                 if file_path.stat().st_size == 0:
                     return True
-            except:
+            except OSError as e:
+                logger.debug(f"无法获取文件状态: {file_path} - {e}")
                 return True
             # Filter by extensions if specified
             if self.extensions is not None:
@@ -110,9 +125,9 @@ class FileScanner:
         def is_accessible(path: Path) -> bool:
             """检查路径是否可访问"""
             try:
-                os.access(path, os.R_OK)
-                return True
-            except:
+                return os.access(path, os.R_OK)
+            except OSError as e:
+                logger.debug(f"访问检查失败: {path} - {e}")
                 return False
 
         # Count total files first for progress tracking
@@ -127,8 +142,8 @@ class FileScanner:
                     # Check directory accessibility
                     if not is_accessible(item):
                         skipped_dirs.add(str(item))
-        except Exception as e:
-            pass  # Ignore errors during counting
+        except OSError as e:
+            logger.warning(f"计数文件时出错: {e}")
 
         self.skipped_directories = list(skipped_dirs)
 
@@ -159,22 +174,28 @@ class FileScanner:
                         progress_callback(processed, total_files)
                         last_reported = processed
                 except PermissionError as e:
-                    self.permission_errors.append(PermissionError(str(file_path), "无访问权限"))
-                except Exception as e:
-                    # Silently skip files with other errors
-                    pass
+                    self.permission_errors.append(PermissionErrorInfo(str(file_path), "无访问权限"))
+                    logger.debug(f"权限拒绝: {file_path}")
+                except OSError as e:
+                    # 记录其他文件系统错误但继续处理
+                    logger.debug(f"跳过文件 {file_path}: {e}")
 
         return files
 
 
 class HashCalculator:
-    CHUNK_SIZE = 8192 * 4
+    CHUNK_SIZE = 8192 * 4  # 32KB chunks for optimal I/O performance
     PROGRESS_INTERVAL = 1024 * 1024  # Report progress every 1MB
 
     def __init__(self, algorithm: str = 'sha256'):
-        self.algorithm = algorithm
+        # 验证算法安全性
+        secure_algorithms = {'sha256', 'sha384', 'sha512', 'sha3_256', 'sha3_384', 'sha3_512'}
+        if algorithm.lower() not in secure_algorithms:
+            raise ValueError(f"不安全的哈希算法: {algorithm}，仅支持: {', '.join(secure_algorithms)}")
+        self.algorithm = algorithm.lower()
 
     def calculate_file_hash(self, file_path: str, progress_callback: Optional[Callable[[int, int], None]] = None) -> Optional[str]:
+        """计算文件的完整哈希值"""
         try:
             hasher = hashlib.new(self.algorithm)
             file_size = os.path.getsize(file_path)
@@ -200,15 +221,21 @@ class HashCalculator:
                     progress_callback(bytes_read, file_size)
 
             return hasher.hexdigest()
-        except (OSError, PermissionError, Exception):
+        except (OSError, PermissionError) as e:
+            logger.warning(f"无法读取文件 {file_path}: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"哈希计算失败 {file_path}: {e}", exc_info=True)
             return None
 
     def calculate_partial_hash(self, file_path: str, sample_size: int = 1024 * 1024) -> Optional[str]:
+        """计算文件的部分哈希值（仅读取前N字节）"""
         try:
             hasher = hashlib.new(self.algorithm)
             with open(file_path, 'rb') as f:
                 chunk = f.read(sample_size)
                 hasher.update(chunk)
             return hasher.hexdigest()
-        except (OSError, PermissionError):
+        except (OSError, PermissionError) as e:
+            logger.warning(f"无法读取文件 {file_path}: {e}")
             return None
